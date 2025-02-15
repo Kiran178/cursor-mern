@@ -1,6 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { createTheme } from '@mui/material/styles';
+import { CssBaseline } from '@mui/material';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
@@ -13,12 +12,11 @@ import Staff from './pages/Staff';
 import Services from './pages/Services';
 import Clients from './pages/Clients';
 import Appointments from './pages/Appointments';
-
-const theme = createTheme();
+import { ThemeProvider } from './contexts/ThemeContext';
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
+    <ThemeProvider>
       <CssBaseline />
       <AuthProvider>
         <BrowserRouter>

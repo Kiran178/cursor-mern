@@ -24,9 +24,12 @@ import {
   People as PeopleIcon,
   Spa as SpaIcon,
   Group as GroupIcon,
+  Brightness4 as DarkModeIcon,
+  Brightness7 as LightModeIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
@@ -37,6 +40,7 @@ export default function MainLayout() {
   const [organizationName, setOrganizationName] = useState('');
   const { logout, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const { mode, toggleColorMode } = useTheme();
 
   useEffect(() => {
     const fetchCurrentOrganization = async () => {
@@ -135,6 +139,13 @@ export default function MainLayout() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {organizationName || 'Loading...'}
           </Typography>
+          <IconButton 
+            color="inherit" 
+            onClick={toggleColorMode}
+            sx={{ ml: 1 }}
+          >
+            {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          </IconButton>
           <Button color="inherit" onClick={handleLogout}>
             Logout
           </Button>
@@ -175,6 +186,7 @@ export default function MainLayout() {
               width: isDrawerOpen ? drawerWidth : collapsedDrawerWidth,
               transition: 'width 0.2s',
               overflowX: 'hidden',
+              backgroundColor: 'background.paper',
             },
           }}
           open
