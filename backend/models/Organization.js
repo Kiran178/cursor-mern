@@ -15,6 +15,13 @@ const organizationSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
+  },
+  settings: {
+    appointmentDuration: {
+      type: Number,
+      default: 30,
+      min: 15
+    }
   }
 }, {
   timestamps: true

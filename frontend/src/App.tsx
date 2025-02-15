@@ -7,12 +7,14 @@ import CreateOrganization from './pages/CreateOrganization';
 import MainLayout from './components/layouts/MainLayout';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
+import PublicRoute from './components/PublicRoute';
 import Organization from './pages/Organization';
 import Staff from './pages/Staff';
 import Services from './pages/Services';
 import Clients from './pages/Clients';
 import Appointments from './pages/Appointments';
 import { ThemeProvider } from './contexts/ThemeContext';
+import Settings from './pages/Settings';
 
 function App() {
   return (
@@ -21,8 +23,22 @@ function App() {
       <AuthProvider>
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
+            <Route 
+              path="/login" 
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              } 
+            />
+            <Route 
+              path="/signup" 
+              element={
+                <PublicRoute>
+                  <Signup />
+                </PublicRoute>
+              } 
+            />
             <Route
               path="/"
               element={
@@ -37,6 +53,7 @@ function App() {
               <Route path="staff" element={<Staff />} />
               <Route path="services" element={<Services />} />
               <Route path="clients" element={<Clients />} />
+              <Route path="settings" element={<Settings />} />
               <Route index element={<Navigate to="/appointments" replace />} />
             </Route>
           </Routes>

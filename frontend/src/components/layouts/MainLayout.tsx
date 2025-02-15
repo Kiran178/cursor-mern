@@ -24,12 +24,10 @@ import {
   People as PeopleIcon,
   Spa as SpaIcon,
   Group as GroupIcon,
-  Brightness4 as DarkModeIcon,
-  Brightness7 as LightModeIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
-import { useTheme } from '../../contexts/ThemeContext';
 
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
@@ -40,7 +38,6 @@ export default function MainLayout() {
   const [organizationName, setOrganizationName] = useState('');
   const { logout, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const { mode, toggleColorMode } = useTheme();
 
   useEffect(() => {
     const fetchCurrentOrganization = async () => {
@@ -86,8 +83,12 @@ export default function MainLayout() {
     ...(isAdmin ? [{ text: 'Organization', icon: <BusinessIcon />, path: '/organization' }] : []),
   ];
 
+  const bottomMenuItems = [
+    { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+  ];
+
   const drawer = (
-    <Box>
+    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', pr: 1 }}>
         <Typography variant="h6" noWrap>
           Menu
@@ -99,6 +100,19 @@ export default function MainLayout() {
       <Divider />
       <List>
         {menuItems.map((item) => (
+          <ListItemButton 
+            key={item.text}
+            onClick={() => navigate(item.path)}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            {isDrawerOpen && <ListItemText primary={item.text} />}
+          </ListItemButton>
+        ))}
+      </List>
+      <Box sx={{ flexGrow: 1 }} />
+      <Divider />
+      <List>
+        {bottomMenuItems.map((item) => (
           <ListItemButton 
             key={item.text}
             onClick={() => navigate(item.path)}
@@ -139,13 +153,6 @@ export default function MainLayout() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {organizationName || 'Loading...'}
           </Typography>
-          <IconButton 
-            color="inherit" 
-            onClick={toggleColorMode}
-            sx={{ ml: 1 }}
-          >
-            {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-          </IconButton>
           <Button color="inherit" onClick={handleLogout}>
             Logout
           </Button>

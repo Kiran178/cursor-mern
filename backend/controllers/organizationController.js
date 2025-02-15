@@ -119,4 +119,46 @@ export const switchOrganization = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: 'Error switching organization', error: error.message });
   }
+};
+
+export const getSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    const organization = await Organization.findById(user.organization);
+    
+    if (!organization) {
+      return res.status(404).json({ message: 'Organization not found' });
+    }
+
+    res.json(organization.settings);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching settings', error: error.message });
+  }
+};
+
+export const updateSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    
+    if (!['superadmin', 'admin'].includes(user.role)) {
+      return res.status(403).json({ message: 'Only superadmin and admin can update settings' });
+    }
+
+    const organization = await Organization.findById(user.organization);
+    
+    if (!organization) {
+      return res.status(404).json({ message: 'Organization not found' });
+    }
+
+    organization.settings = {
+      ...organization.settings,
+      ...req.body
+    };
+
+    await organization.save();
+
+    res.json(organization.settings);
+  } catch (error) {
+    res.status(500).json({ message: 'Error updating settings', error: error.message });
+  }
 }; 
