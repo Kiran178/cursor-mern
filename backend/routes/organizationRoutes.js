@@ -9,10 +9,22 @@ import {
   deleteOrganization,
   switchOrganization,
   getSettings,
-  updateSettings
+  updateSettings,
+  getCurrentOrganization
 } from '../controllers/organizationController.js';
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /api/organizations/current:
+ *   get:
+ *     summary: Get the current organization
+ *     tags: [Organizations]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get('/current', auth, getCurrentOrganization);
 
 /**
  * @swagger

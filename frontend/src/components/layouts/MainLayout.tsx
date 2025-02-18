@@ -38,11 +38,11 @@ export default function MainLayout() {
   const fetchOrganization = async () => {
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await axios.get('http://localhost:3001/api/organizations', {
+      const response = await axios.get('http://localhost:3001/api/organizations/current', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (response.data.length > 0) {
-        setOrganizationName(response.data[0].name);
+      if (response.data) {
+        setOrganizationName(response.data.name);
       }
     } catch (error) {
       console.error('Error fetching organization:', error);

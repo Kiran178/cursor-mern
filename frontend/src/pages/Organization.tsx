@@ -146,7 +146,13 @@ export default function Organization() {
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      // Refresh page or update state as needed
+
+      // Save the new token
+      if (response.data.accessToken) {
+        localStorage.setItem('accessToken', response.data.accessToken);
+      }
+
+      // Refresh page
       window.location.reload();
     } catch (error) {
       console.error('Error switching organization:', error);

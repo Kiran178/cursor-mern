@@ -1,5 +1,6 @@
 import { Organization } from '../models/Organization.js';
 import { User } from '../models/User.js';
+import jwt from 'jsonwebtoken';
 
 export const createOrganization = async (req, res) => {
   try {
@@ -115,7 +116,21 @@ export const switchOrganization = async (req, res) => {
     user.organization = organization._id;
     await user.save();
 
-    res.json({ message: 'Organization switched successfully' });
+    // Generate new token with updated organization
+    const payload = {
+      userId: user._id,
+      role: user.role,
+      organization: organization._id
+    };
+
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: '1d'
+    });
+
+    res.json({ 
+      message: 'Organization switched successfully',
+      accessToken
+    });
   } catch (error) {
     res.status(500).json({ message: 'Error switching organization', error: error.message });
   }
@@ -160,5 +175,17 @@ export const updateSettings = async (req, res) => {
     res.json(organization.settings);
   } catch (error) {
     res.status(500).json({ message: 'Error updating settings', error: error.message });
+  }
+};
+
+export const getCurrentOrganization = async (req, res) => {
+  try {
+    const organization = await Organization.findById(req.user.organization);
+    if (!organization) {
+      return res.status(404).json({ message: 'Organization not found' });
+    }
+    res.json(organization);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching organization', error: error.message });
   }
 }; 
