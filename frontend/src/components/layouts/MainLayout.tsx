@@ -9,25 +9,27 @@ import {
   ListItemText,
   Typography,
   Divider,
+  IconButton,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
   CalendarMonth as CalendarIcon,
   Business as BusinessIcon,
-  ChevronLeft as ChevronLeftIcon,
-  ChevronRight as ChevronRightIcon,
   People as PeopleIcon,
   Spa as SpaIcon,
   Group as GroupIcon,
   Settings as SettingsIcon,
+  ChevronLeft as ChevronLeftIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 
 const drawerWidth = 280;
+const collapsedDrawerWidth = 73; // Width when collapsed
 
 export default function MainLayout() {
   const [organizationName, setOrganizationName] = useState('');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
@@ -49,6 +51,10 @@ export default function MainLayout() {
     }
   };
 
+  const handleDrawerToggle = () => {
+    setIsDrawerOpen(!isDrawerOpen);
+  };
+
   const menuItems = [
     { text: 'Appointments', icon: <CalendarIcon />, path: '/appointments' },
     { text: 'Staff', icon: <PeopleIcon />, path: '/staff' },
@@ -66,18 +72,33 @@ export default function MainLayout() {
       <Drawer
         variant="permanent"
         sx={{
-          width: drawerWidth,
+          width: isDrawerOpen ? drawerWidth : collapsedDrawerWidth,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
-            width: drawerWidth,
+            width: isDrawerOpen ? drawerWidth : collapsedDrawerWidth,
             boxSizing: 'border-box',
+            overflowX: 'hidden',
+            transition: theme => theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
           },
         }}
       >
-        <Box sx={{ p: 2 }}>
-          <Typography variant="h6" noWrap component="div" sx={{ mb: 1 }}>
-            {organizationName}
-          </Typography>
+        <Box sx={{ 
+          p: 2, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: isDrawerOpen ? 'space-between' : 'center' 
+        }}>
+          {isDrawerOpen && (
+            <Typography variant="h6" noWrap component="div">
+              {organizationName}
+            </Typography>
+          )}
+          <IconButton onClick={handleDrawerToggle}>
+            {isDrawerOpen ? <ChevronLeftIcon /> : <MenuIcon />}
+          </IconButton>
         </Box>
         <Divider />
         <List>
@@ -85,9 +106,18 @@ export default function MainLayout() {
             <ListItem 
               key={item.text}
               onClick={() => navigate(item.path)}
+              sx={{ 
+                justifyContent: isDrawerOpen ? 'flex-start' : 'center',
+                px: isDrawerOpen ? 2 : 1
+              }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemIcon sx={{ 
+                minWidth: isDrawerOpen ? 40 : 'auto',
+                mr: isDrawerOpen ? 2 : 0
+              }}>
+                {item.icon}
+              </ListItemIcon>
+              {isDrawerOpen && <ListItemText primary={item.text} />}
             </ListItem>
           ))}
         </List>
@@ -97,9 +127,18 @@ export default function MainLayout() {
             <ListItem 
               key={item.text}
               onClick={() => navigate(item.path)}
+              sx={{ 
+                justifyContent: isDrawerOpen ? 'flex-start' : 'center',
+                px: isDrawerOpen ? 2 : 1
+              }}
             >
-              <ListItemIcon>{item.icon}</ListItemIcon>
-              <ListItemText primary={item.text} />
+              <ListItemIcon sx={{ 
+                minWidth: isDrawerOpen ? 40 : 'auto',
+                mr: isDrawerOpen ? 2 : 0
+              }}>
+                {item.icon}
+              </ListItemIcon>
+              {isDrawerOpen && <ListItemText primary={item.text} />}
             </ListItem>
           ))}
         </List>
@@ -109,9 +148,13 @@ export default function MainLayout() {
         sx={{
           flexGrow: 1,
           p: 3,
-          width: `calc(100% - ${drawerWidth}px)`,
-          maxWidth: `calc(100% - ${drawerWidth}px)`,
-          overflow: 'auto'
+          width: `calc(100% - ${isDrawerOpen ? drawerWidth : collapsedDrawerWidth}px)`,
+          maxWidth: `calc(100% - ${isDrawerOpen ? drawerWidth : collapsedDrawerWidth}px)`,
+          overflow: 'auto',
+          transition: theme => theme.transitions.create(['width', 'margin'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <Outlet />
