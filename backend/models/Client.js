@@ -4,24 +4,24 @@ const clientSchema = new mongoose.Schema({
   firstName: {
     type: String,
     required: true,
+    trim: true
   },
   lastName: {
     type: String,
     required: true,
+    trim: true
   },
   email: {
     type: String,
     required: true,
+    unique: true,
+    trim: true,
+    lowercase: true
   },
   phone: {
     type: String,
     required: true,
-  },
-  address: {
-    street: String,
-    city: String,
-    state: String,
-    pincode: String
+    trim: true
   },
   organization: {
     type: mongoose.Schema.Types.ObjectId,
@@ -38,7 +38,19 @@ const clientSchema = new mongoose.Schema({
   },
   preferredStaff: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Staff'
+    ref: 'Staff',
+    required: true
+  }],
+  priorityScore: {
+    type: Number,
+    min: 1,
+    max: 10,
+    default: 10
+  },
+  preferredDays: [{
+    type: String,
+    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+    required: true
   }]
 }, {
   timestamps: true

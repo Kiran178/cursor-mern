@@ -55,6 +55,21 @@ interface Staff {
   status: "active" | "inactive";
 }
 
+interface WeeklySchedule {
+  monday: { start: string; end: string };
+  tuesday: { start: string; end: string };
+  wednesday: { start: string; end: string };
+  thursday: { start: string; end: string };
+  friday: { start: string; end: string };
+  saturday: { start: string; end: string };
+  sunday: { start: string; end: string };
+}
+
+interface OrganizationSettings {
+  appointmentDuration: number;
+  weeklySchedule: WeeklySchedule;
+}
+
 export default function Appointments() {
   const [tabValue, setTabValue] = useState(0);
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
@@ -63,9 +78,11 @@ export default function Appointments() {
   const [loading, setLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const open = Boolean(anchorEl);
+  const [settings, setSettings] = useState<OrganizationSettings | null>(null);
 
   useEffect(() => {
     fetchStaffList();
+    fetchSettings();
   }, []);
 
   const fetchStaffList = async () => {
@@ -85,16 +102,40 @@ export default function Appointments() {
     }
   };
 
-  // Generate time slots based on settings
-  const generateTimeSlots = () => {
-    const slots = [];
-    let time = dayjs().set("hour", 15).set("minute", 45); // Start at 3:45 PM
-    const endTime = dayjs().set("hour", 20).set("minute", 15); // End at 8:15 PM
-
-    while (time.isBefore(endTime)) {
-      slots.push(time);
-      time = time.add(15, "minute");
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get('http://localhost:3001/api/organizations/settings', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSettings(response.data);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
     }
+  };
+
+  // Generate time slots based on settings and selected date
+  const generateTimeSlots = () => {
+    if (!settings || !selectedDate) return [];
+
+    const dayOfWeek = selectedDate.format('dddd').toLowerCase() as keyof WeeklySchedule;
+    const { start, end } = settings.weeklySchedule[dayOfWeek];
+    const duration = settings.appointmentDuration;
+
+    const slots = [];
+    let currentTime = dayjs(selectedDate)
+      .set('hour', parseInt(start.split(':')[0]))
+      .set('minute', parseInt(start.split(':')[1]));
+    
+    const endTime = dayjs(selectedDate)
+      .set('hour', parseInt(end.split(':')[0]))
+      .set('minute', parseInt(end.split(':')[1]));
+
+    while (currentTime.isBefore(endTime)) {
+      slots.push(currentTime);
+      currentTime = currentTime.add(duration, 'minute');
+    }
+
     return slots;
   };
 
@@ -285,37 +326,45 @@ export default function Appointments() {
 
               {/* Time Slots */}
               <Box>
-                <Typography variant='h6' gutterBottom>
+                <Typography variant="h6" gutterBottom>
                   Available Time Slots
                 </Typography>
-                <Grid container spacing={2}>
-                  {timeSlots.map((time) => (
-                    <Grid
-                      item
-                      xs={6}
-                      sm={6}
-                      md={4}
-                      lg={3}
-                      key={time.format("HH:mm")}
-                    >
-                      <Button
-                        variant='outlined'
-                        fullWidth
-                        sx={{
-                          justifyContent: "center",
-                          height: "48px",
-                          borderRadius: 2,
-                          "&:hover": {
-                            borderColor: "primary.main",
-                            bgcolor: "action.hover",
-                          },
-                        }}
-                      >
-                        {time.format("hh:mm A")}
-                      </Button>
-                    </Grid>
-                  ))}
-                </Grid>
+                {!settings ? (
+                  <Typography>Loading time slots...</Typography>
+                ) : timeSlots.length === 0 ? (
+                  <Typography>No time slots available for selected date</Typography>
+                ) : (
+                  <Grid container spacing={2}>
+                    {timeSlots.map((time) => (
+                      <Grid item xs={6} sm={6} md={4} lg={3} key={time.format('HH:mm')}>
+                        <Button
+                          variant="outlined"
+                          fullWidth
+                          sx={{
+                            justifyContent: 'center',
+                            height: '48px',
+                            borderRadius: 2,
+                            color: 'primary.main',
+                            borderColor: 'divider',
+                            '&:hover': {
+                              borderColor: 'primary.main',
+                              bgcolor: 'action.hover',
+                            },
+                            '&.Mui-selected': {
+                              bgcolor: 'primary.main',
+                              color: 'primary.contrastText',
+                              '&:hover': {
+                                bgcolor: 'primary.dark',
+                              },
+                            },
+                          }}
+                        >
+                          {time.format('hh:mm A')}
+                        </Button>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
               </Box>
             </Grid>
           </Grid>

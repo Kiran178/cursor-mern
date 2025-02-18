@@ -56,9 +56,10 @@ interface Service {
 const validationSchema = Yup.object({
   firstName: Yup.string().required('Required'),
   lastName: Yup.string().required('Required'),
-  email: Yup.string().email('Invalid email').required('Required'),
+  email: Yup.string().email('Invalid email'),
   phone: Yup.string(),
   services: Yup.array().of(Yup.string()),
+  status: Yup.string().oneOf(['active', 'inactive']).required('Required')
 });
 
 export default function Staff() {

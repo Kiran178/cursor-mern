@@ -4,14 +4,17 @@ const staffSchema = new mongoose.Schema({
   firstName: {
     type: String,
     required: true,
+    trim: true
   },
   lastName: {
     type: String,
     required: true,
+    trim: true
   },
   email: {
     type: String,
-    required: true,
+    trim: true,
+    lowercase: true
   },
   phone: {
     type: String,
@@ -40,6 +43,6 @@ const staffSchema = new mongoose.Schema({
 });
 
 // Ensure email is unique within an organization
-staffSchema.index({ email: 1, organization: 1 }, { unique: true });
+// staffSchema.index({ email: 1, organization: 1 }, { unique: true });
 
 export const Staff = mongoose.model('Staff', staffSchema); 

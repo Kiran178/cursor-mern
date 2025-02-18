@@ -29,7 +29,7 @@ export default function Login() {
     try {
       console.log('Checking organization for admin:', isSuperAdmin);
       if (!isSuperAdmin) {
-        navigate('/dashboard');
+        navigate('/appointments');
         return;
       }
 
@@ -44,14 +44,14 @@ export default function Login() {
         navigate('/create-organization');
       } else {
         console.log('Organizations found, redirecting to dashboard');
-        navigate('/dashboard');
+        navigate('/appointments');
       }
     } catch (err: any) {
       console.error('Error checking organization:', err);
       if (err.response?.status === 403) {
         navigate('/create-organization');
       } else {
-        navigate('/dashboard');
+        navigate('/appointments');
       }
     }
   };
