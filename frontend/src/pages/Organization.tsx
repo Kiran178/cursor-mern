@@ -23,6 +23,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   MoreVert as MoreVertIcon,
+  SwapHoriz as SwapHorizIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import FormTextField from '../components/forms/FormTextField';
@@ -140,7 +141,7 @@ export default function Organization() {
   const handleSwitch = async (orgId: string) => {
     try {
       const token = localStorage.getItem('accessToken');
-      await axios.post(
+      const response = await axios.post(
         `http://localhost:3001/api/organizations/${orgId}/switch`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
@@ -154,8 +155,13 @@ export default function Organization() {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        mb: 3,
+        width: '100%'
+      }}>
         <Typography variant="h4" component="h1">
           Organizations
         </Typography>
@@ -168,8 +174,14 @@ export default function Organization() {
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          width: '100%',
+          overflow: 'auto'
+        }}
+      >
+        <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
@@ -204,11 +216,11 @@ export default function Organization() {
         }}>
           <EditIcon sx={{ mr: 1 }} /> Edit
         </MenuItem>
+        <MenuItem onClick={() => handleSwitch(selectedOrg!._id)}>
+          <SwapHorizIcon sx={{ mr: 1 }} /> Switch to this Organization
+        </MenuItem>
         <MenuItem onClick={() => handleDelete(selectedOrg!._id)}>
           <DeleteIcon sx={{ mr: 1 }} /> Delete
-        </MenuItem>
-        <MenuItem onClick={() => handleSwitch(selectedOrg!._id)}>
-          Switch to this organization
         </MenuItem>
       </Menu>
 

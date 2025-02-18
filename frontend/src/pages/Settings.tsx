@@ -16,10 +16,12 @@ import {
 import {
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
+  Logout as LogoutIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 interface WeeklySchedule {
   monday: { start: string; end: string };
@@ -55,8 +57,9 @@ export default function Settings() {
   const [message, setMessage] = useState('');
   const [severity, setSeverity] = useState<'success' | 'error'>('success');
   const [openSnackbar, setOpenSnackbar] = useState(false);
-  const { isAdmin } = useAuth();
+  const { isAdmin, logout } = useAuth();
   const { mode, toggleColorMode } = useTheme();
+  const navigate = useNavigate();
 
   const days = [
     'monday',
@@ -121,13 +124,18 @@ export default function Settings() {
     }
   };
 
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
+  };
+
   if (loading) {
     return <Typography>Loading...</Typography>;
   }
 
   return (
     <Box>
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography variant="h4" gutterBottom>
         Settings
       </Typography>
 
@@ -241,6 +249,18 @@ export default function Settings() {
           </Button>
         )}
       </Paper>
+
+      <Box sx={{ mt: 4 }}>
+        <Divider sx={{ my: 4 }} />
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<LogoutIcon />}
+          onClick={handleLogout}
+        >
+          Logout
+        </Button>
+      </Box>
 
       <Snackbar 
         open={openSnackbar} 

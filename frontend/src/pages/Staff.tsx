@@ -200,8 +200,13 @@ export default function Staff() {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        mb: 3,
+        width: '100%'
+      }}>
         <Typography variant="h4" component="h1">
           Staff Management
         </Typography>
@@ -214,8 +219,14 @@ export default function Staff() {
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          width: '100%',
+          overflow: 'auto'
+        }}
+      >
+        <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>

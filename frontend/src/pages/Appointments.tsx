@@ -167,7 +167,7 @@ export default function Appointments() {
       <Paper sx={{ mt: 2 }}>
         <Tabs value={tabValue} onChange={handleTabChange}>
           <Tab label='Available Slots' />
-          <Tab label='Custom Time' />
+          <Tab label='AI Appointments' />
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>

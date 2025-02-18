@@ -2,18 +2,13 @@ import { useState, useEffect } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import {
   Box,
-  AppBar,
-  Toolbar,
   Drawer,
-  Typography,
-  IconButton,
   List,
   ListItem,
   ListItemIcon,
   ListItemText,
-  Button,
+  Typography,
   Divider,
-  ListItemButton,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -29,50 +24,29 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 
-const drawerWidth = 240;
-const collapsedDrawerWidth = 64;
+const drawerWidth = 280;
 
 export default function MainLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [organizationName, setOrganizationName] = useState('');
-  const { logout, isAdmin } = useAuth();
+  const { isAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchCurrentOrganization = async () => {
-      try {
-        const token = localStorage.getItem('accessToken');
-        const userResponse = await axios.get('http://localhost:3001/api/auth/verify', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (userResponse.data.organization) {
-          const orgResponse = await axios.get(
-            `http://localhost:3001/api/organizations/${userResponse.data.organization}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          setOrganizationName(orgResponse.data.name);
-        }
-      } catch (error) {
-        console.error('Error fetching current organization:', error);
-      }
-    };
-
-    fetchCurrentOrganization();
+    fetchOrganization();
   }, []);
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
-  const toggleDrawer = () => {
-    setIsDrawerOpen(!isDrawerOpen);
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const fetchOrganization = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get('http://localhost:3001/api/organizations', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.length > 0) {
+        setOrganizationName(response.data[0].name);
+      }
+    } catch (error) {
+      console.error('Error fetching organization:', error);
+    }
   };
 
   const menuItems = [
@@ -87,134 +61,57 @@ export default function MainLayout() {
     { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   ];
 
-  const drawer = (
-    <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', pr: 1 }}>
-        <Typography variant="h6" noWrap>
-          Menu
-        </Typography>
-        <IconButton onClick={toggleDrawer}>
-          {isDrawerOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-        </IconButton>
-      </Toolbar>
-      <Divider />
-      <List>
-        {menuItems.map((item) => (
-          <ListItemButton 
-            key={item.text}
-            onClick={() => navigate(item.path)}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            {isDrawerOpen && <ListItemText primary={item.text} />}
-          </ListItemButton>
-        ))}
-      </List>
-      <Box sx={{ flexGrow: 1 }} />
-      <Divider />
-      <List>
-        {bottomMenuItems.map((item) => (
-          <ListItemButton 
-            key={item.text}
-            onClick={() => navigate(item.path)}
-          >
-            <ListItemIcon>{item.icon}</ListItemIcon>
-            {isDrawerOpen && <ListItemText primary={item.text} />}
-          </ListItemButton>
-        ))}
-      </List>
-    </Box>
-  );
-
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', width: '100vw' }}>
-      <AppBar
-        position="fixed"
+      <Drawer
+        variant="permanent"
         sx={{
-          width: { 
-            xs: '100%',
-            sm: `calc(100% - ${isDrawerOpen ? drawerWidth : collapsedDrawerWidth}px)` 
-          },
-          ml: { 
-            xs: 0,
-            sm: isDrawerOpen ? drawerWidth : collapsedDrawerWidth 
-          },
-          transition: 'width 0.2s, margin-left 0.2s',
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleDrawerToggle}
-            sx={{ mr: 2, display: { sm: 'none' } }}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {organizationName || 'Loading...'}
-          </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      <Box
-        component="nav"
-        sx={{
-          width: { 
-            sm: isDrawerOpen ? drawerWidth : collapsedDrawerWidth 
-          },
+          width: drawerWidth,
           flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+          },
         }}
       >
-        <Drawer
-          variant="temporary"
-          open={mobileOpen}
-          onClose={handleDrawerToggle}
-          ModalProps={{ keepMounted: true }}
-          sx={{
-            display: { xs: 'block', sm: 'none' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: drawerWidth,
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-
-        <Drawer
-          variant="permanent"
-          sx={{
-            display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: isDrawerOpen ? drawerWidth : collapsedDrawerWidth,
-              transition: 'width 0.2s',
-              overflowX: 'hidden',
-              backgroundColor: 'background.paper',
-            },
-          }}
-          open
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-
+        <Box sx={{ p: 2 }}>
+          <Typography variant="h6" noWrap component="div" sx={{ mb: 1 }}>
+            {organizationName}
+          </Typography>
+        </Box>
+        <Divider />
+        <List>
+          {menuItems.map((item) => (
+            <ListItem 
+              key={item.text}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItem>
+          ))}
+        </List>
+        <Divider />
+        <List>
+          {bottomMenuItems.map((item) => (
+            <ListItem 
+              key={item.text}
+              onClick={() => navigate(item.path)}
+            >
+              <ListItemIcon>{item.icon}</ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItem>
+          ))}
+        </List>
+      </Drawer>
       <Box
         component="main"
         sx={{
           flexGrow: 1,
           p: 3,
-          width: {
-            xs: '100%',
-            sm: `calc(100% - ${isDrawerOpen ? drawerWidth : collapsedDrawerWidth}px)`,
-          },
-          minHeight: '100vh',
-          pt: { xs: 8, sm: 9 },
-          transition: 'width 0.2s',
-          backgroundColor: 'background.default',
+          width: `calc(100% - ${drawerWidth}px)`,
+          maxWidth: `calc(100% - ${drawerWidth}px)`,
+          overflow: 'auto'
         }}
       >
         <Outlet />

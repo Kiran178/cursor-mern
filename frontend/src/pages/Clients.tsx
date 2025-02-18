@@ -46,6 +46,14 @@ interface Staff {
   status: 'active' | 'inactive';
 }
 
+interface Service {
+  _id: string;
+  name: string;
+  description?: string;
+  duration: number;
+  price: number;
+}
+
 interface Client {
   _id: string;
   firstName: string;
@@ -57,6 +65,7 @@ interface Client {
   preferredStaff: Staff[];
   priorityScore: number;
   preferredDays: string[];
+  preferredServices: Service[];
 }
 
 const DAYS_OF_WEEK = [
@@ -71,12 +80,16 @@ const DAYS_OF_WEEK = [
 
 const validationSchema = Yup.object({
   firstName: Yup.string().required('Required'),
-  lastName: Yup.string().required('Required'),
+  lastName: Yup.string(),
   email: Yup.string().email('Invalid email').required('Required'),
   phone: Yup.string().required('Required'),
   notes: Yup.string(),
   preferredStaff: Yup.array().of(Yup.string()).min(1, 'At least one staff member is required').required('Required'),
   preferredDays: Yup.array().of(Yup.string().oneOf(DAYS_OF_WEEK)).min(1, 'At least one day is required').required('Required'),
+  preferredServices: Yup.array()
+    .of(Yup.string())
+    .min(1, 'At least one service is required')
+    .required('Required'),
 });
 
 export default function Clients() {
@@ -87,6 +100,8 @@ export default function Clients() {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<Staff[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const { isAdmin } = useAuth();
 
   const formik = useFormik({
@@ -100,6 +115,7 @@ export default function Clients() {
       status: 'active' as const,
       priorityScore: 10,
       preferredDays: [] as string[],
+      preferredServices: [] as string[],
     },
     validationSchema,
     onSubmit: async (values, { resetForm, setSubmitting }) => {
@@ -109,6 +125,7 @@ export default function Clients() {
           ...values,
           preferredStaff: selectedStaff.map(staff => staff._id),
           preferredDays: values.preferredDays || [],
+          preferredServices: selectedServices.map(service => service._id),
         };
 
         if (editingClient) {
@@ -128,6 +145,7 @@ export default function Clients() {
         handleCloseDialog();
         resetForm();
         setSelectedStaff([]);
+        setSelectedServices([]);
       } catch (error: any) {
         console.error('Error saving client:', error.response?.data?.message || error.message);
       } finally {
@@ -161,9 +179,22 @@ export default function Clients() {
     }
   };
 
+  const fetchServices = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await axios.get('http://localhost:3001/api/services', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setServices(response.data);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+    }
+  };
+
   useEffect(() => {
     fetchClients();
     fetchStaffList();
+    fetchServices();
   }, []);
 
   const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, client: Client) => {
@@ -189,12 +220,15 @@ export default function Clients() {
         status: client.status,
         priorityScore: client.priorityScore,
         preferredDays: client.preferredDays || [],
+        preferredServices: client.preferredServices?.map(service => service._id) || [],
       });
       setSelectedStaff(client.preferredStaff);
+      setSelectedServices(client.preferredServices || []);
     } else {
       setEditingClient(null);
       formik.resetForm();
       setSelectedStaff([]);
+      setSelectedServices([]);
     }
     setOpenDialog(true);
   };
@@ -234,8 +268,13 @@ export default function Clients() {
   };
 
   return (
-    <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        mb: 3,
+        width: '100%'
+      }}>
         <Typography variant="h4" component="h1">
           Clients
         </Typography>
@@ -250,8 +289,14 @@ export default function Clients() {
         )}
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer 
+        component={Paper} 
+        sx={{ 
+          width: '100%',
+          overflow: 'auto'
+        }}
+      >
+        <Table sx={{ minWidth: 650 }}>
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
@@ -427,6 +472,40 @@ export default function Clients() {
                     {formik.errors.preferredDays as string}
                   </Typography>
                 )}
+              </Grid>
+              <Grid item xs={12}>
+                <Autocomplete
+                  multiple
+                  required
+                  options={services}
+                  value={selectedServices}
+                  onChange={(event, newValue) => {
+                    setSelectedServices(newValue);
+                    formik.setFieldValue(
+                      'preferredServices', 
+                      newValue.map(service => service._id)
+                    );
+                  }}
+                  getOptionLabel={(option) => `${option.name} (${option.duration}min - $${option.price})`}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Preferred Services"
+                      variant="outlined"
+                      fullWidth
+                      error={formik.touched.preferredServices && Boolean(formik.errors.preferredServices)}
+                      helperText={formik.touched.preferredServices && formik.errors.preferredServices}
+                    />
+                  )}
+                  renderTags={(value, getTagProps) =>
+                    value.map((option, index) => (
+                      <Chip
+                        label={option.name}
+                        {...getTagProps({ index })}
+                      />
+                    ))
+                  }
+                />
               </Grid>
               <Grid item xs={12}>
                 <FormTextField

@@ -8,7 +8,6 @@ const clientSchema = new mongoose.Schema({
   },
   lastName: {
     type: String,
-    required: true,
     trim: true
   },
   email: {
@@ -50,6 +49,11 @@ const clientSchema = new mongoose.Schema({
   preferredDays: [{
     type: String,
     enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+    required: true
+  }],
+  preferredServices: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Service',
     required: true
   }]
 }, {
