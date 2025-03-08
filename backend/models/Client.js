@@ -46,15 +46,38 @@ const clientSchema = new mongoose.Schema({
     max: 10,
     default: 10
   },
+  preferredDaysServices: [{
+    day: {
+      type: String,
+      enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
+      required: true
+    },
+    services: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Service',
+      required: true
+    }]
+  }],
+  monthlySlotAllocation: [{
+    service: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Service',
+      required: true
+    },
+    slots: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: 10
+    }
+  }],
   preferredDays: [{
     type: String,
-    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-    required: true
+    enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
   }],
   preferredServices: [{
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Service',
-    required: true
+    ref: 'Service'
   }]
 }, {
   timestamps: true

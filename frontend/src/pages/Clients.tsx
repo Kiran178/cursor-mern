@@ -49,9 +49,20 @@ interface Staff {
 interface Service {
   _id: string;
   name: string;
-  description?: string;
-  duration: number;
+  description: string;
   price: number;
+  duration: number;
+  status: 'active' | 'inactive';
+}
+
+interface PreferredDayService {
+  day: string;
+  services: Service[];
+}
+
+interface MonthlySlotAllocation {
+  service: Service;
+  slots: number;
 }
 
 interface Client {
@@ -66,6 +77,8 @@ interface Client {
   priorityScore: number;
   preferredDays: string[];
   preferredServices: Service[];
+  preferredDaysServices: PreferredDayService[];
+  monthlySlotAllocation: MonthlySlotAllocation[];
 }
 
 const DAYS_OF_WEEK = [
@@ -85,11 +98,19 @@ const validationSchema = Yup.object({
   phone: Yup.string().required('Required'),
   notes: Yup.string(),
   preferredStaff: Yup.array().of(Yup.string()).min(1, 'At least one staff member is required').required('Required'),
-  preferredDays: Yup.array().of(Yup.string().oneOf(DAYS_OF_WEEK)).min(1, 'At least one day is required').required('Required'),
-  preferredServices: Yup.array()
-    .of(Yup.string())
-    .min(1, 'At least one service is required')
-    .required('Required'),
+  priorityScore: Yup.number().min(1).max(10),
+  preferredDaysServices: Yup.array().of(
+    Yup.object().shape({
+      day: Yup.string().oneOf(DAYS_OF_WEEK).required('Day is required'),
+      services: Yup.array().of(Yup.string()).min(1, 'At least one service is required').required('Required')
+    })
+  ),
+  monthlySlotAllocation: Yup.array().of(
+    Yup.object().shape({
+      service: Yup.string().required('Service is required'),
+      slots: Yup.number().min(1, 'Minimum 1 slot required').required('Required')
+    })
+  )
 });
 
 export default function Clients() {
@@ -102,6 +123,8 @@ export default function Clients() {
   const [selectedStaff, setSelectedStaff] = useState<Staff[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
+  const [preferredDaysServices, setPreferredDaysServices] = useState<PreferredDayService[]>([]);
+  const [monthlySlotAllocation, setMonthlySlotAllocation] = useState<MonthlySlotAllocation[]>([]);
   const { isAdmin } = useAuth();
 
   const formik = useFormik({
@@ -112,10 +135,12 @@ export default function Clients() {
       phone: '',
       notes: '',
       preferredStaff: [] as string[],
-      status: 'active' as const,
+      status: 'active' as 'active' | 'inactive',
       priorityScore: 10,
       preferredDays: [] as string[],
       preferredServices: [] as string[],
+      preferredDaysServices: [] as PreferredDayService[],
+      monthlySlotAllocation: [] as MonthlySlotAllocation[]
     },
     validationSchema,
     onSubmit: async (values, { resetForm, setSubmitting }) => {
@@ -126,6 +151,15 @@ export default function Clients() {
           preferredStaff: selectedStaff.map(staff => staff._id),
           preferredDays: values.preferredDays || [],
           preferredServices: selectedServices.map(service => service._id),
+          preferredDaysServices: preferredDaysServices.map(pds => ({
+            day: pds.day,
+            services: pds.services.map(service => service._id)
+          })),
+          monthlySlotAllocation: monthlySlotAllocation.map(msa => ({
+            service: msa.service._id,
+            slots: msa.slots
+          })),
+          priorityScore: 10
         };
 
         if (editingClient) {
@@ -146,6 +180,8 @@ export default function Clients() {
         resetForm();
         setSelectedStaff([]);
         setSelectedServices([]);
+        setPreferredDaysServices([]);
+        setMonthlySlotAllocation([]);
       } catch (error: any) {
         console.error('Error saving client:', error.response?.data?.message || error.message);
       } finally {
@@ -207,9 +243,28 @@ export default function Clients() {
     setSelectedClient(null);
   };
 
+  const handleEditClick = () => {
+    if (selectedClient) {
+      handleOpenDialog(selectedClient);
+    }
+    handleCloseMenu();
+  };
+
+  const handleDeleteClick = () => {
+    if (selectedClient) {
+      handleDelete(selectedClient._id);
+    }
+    handleCloseMenu();
+  };
+
   const handleOpenDialog = (client?: Client) => {
     if (client) {
       setEditingClient(client);
+      setSelectedStaff(client.preferredStaff || []);
+      setSelectedServices(client.preferredServices || []);
+      setPreferredDaysServices(client.preferredDaysServices || []);
+      setMonthlySlotAllocation(client.monthlySlotAllocation || []);
+      
       formik.setValues({
         firstName: client.firstName,
         lastName: client.lastName,
@@ -217,20 +272,24 @@ export default function Clients() {
         phone: client.phone,
         notes: client.notes || '',
         preferredStaff: client.preferredStaff.map(staff => staff._id),
-        status: client.status,
-        priorityScore: client.priorityScore,
+        status: client.status as 'active' | 'inactive',
+        priorityScore: 10,
         preferredDays: client.preferredDays || [],
-        preferredServices: client.preferredServices?.map(service => service._id) || [],
+        preferredServices: client.preferredServices.map(service => service._id),
+        preferredDaysServices: client.preferredDaysServices || [],
+        monthlySlotAllocation: client.monthlySlotAllocation || []
       });
-      setSelectedStaff(client.preferredStaff);
-      setSelectedServices(client.preferredServices || []);
+      
+      setOpenDialog(true);
     } else {
       setEditingClient(null);
       formik.resetForm();
       setSelectedStaff([]);
       setSelectedServices([]);
+      setPreferredDaysServices([]);
+      setMonthlySlotAllocation([]);
+      setOpenDialog(true);
     }
-    setOpenDialog(true);
   };
 
   const handleCloseDialog = () => {
@@ -267,61 +326,162 @@ export default function Clients() {
     handleCloseMenu();
   };
 
+  const handleAddDayServiceMapping = () => {
+    setPreferredDaysServices([
+      ...preferredDaysServices,
+      { day: '', services: [] }
+    ]);
+  };
+
+  const handleRemoveDayServiceMapping = (index: number) => {
+    const newMappings = [...preferredDaysServices];
+    newMappings.splice(index, 1);
+    setPreferredDaysServices(newMappings);
+  };
+
+  const handleDayChange = (index: number, day: string) => {
+    const newMappings = [...preferredDaysServices];
+    newMappings[index].day = day;
+    setPreferredDaysServices(newMappings);
+  };
+
+  const handleServicesChange = (index: number, selectedServices: Service[]) => {
+    const newMappings = [...preferredDaysServices];
+    newMappings[index].services = selectedServices;
+    setPreferredDaysServices(newMappings);
+  };
+
+  const handleAddSlotAllocation = () => {
+    setMonthlySlotAllocation([
+      ...monthlySlotAllocation,
+      { service: {} as Service, slots: 10 }
+    ]);
+  };
+
+  const handleRemoveSlotAllocation = (index: number) => {
+    const newAllocations = [...monthlySlotAllocation];
+    newAllocations.splice(index, 1);
+    setMonthlySlotAllocation(newAllocations);
+  };
+
+  const handleServiceChange = (index: number, service: Service) => {
+    const newAllocations = [...monthlySlotAllocation];
+    newAllocations[index].service = service;
+    setMonthlySlotAllocation(newAllocations);
+  };
+
+  const handleSlotsChange = (index: number, slots: number) => {
+    const newAllocations = [...monthlySlotAllocation];
+    newAllocations[index].slots = slots;
+    setMonthlySlotAllocation(newAllocations);
+  };
+
   return (
-    <Box sx={{ width: '100%' }}>
-      <Box sx={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        mb: 3,
-        width: '100%'
-      }}>
-        <Typography variant="h4" component="h1">
+    <Box sx={{ p: 3 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+        <Typography variant="h4" component="h1" gutterBottom>
           Clients
         </Typography>
         {isAdmin && (
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
+            onClick={() => {
+              setEditingClient(null);
+              formik.resetForm();
+              setSelectedStaff([]);
+              setSelectedServices([]);
+              setPreferredDaysServices([]);
+              setMonthlySlotAllocation([]);
+              setOpenDialog(true);
+            }}
           >
             Add Client
           </Button>
         )}
       </Box>
 
-      <TableContainer 
-        component={Paper} 
-        sx={{ 
-          width: '100%',
-          overflow: 'auto'
-        }}
-      >
-        <Table sx={{ minWidth: 650 }}>
+      <TableContainer component={Paper}>
+        <Table>
           <TableHead>
             <TableRow>
               <TableCell>Name</TableCell>
-              <TableCell>Contact</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Phone</TableCell>
+              <TableCell>Preferred Staff</TableCell>
+              <TableCell>Day-Service Mappings</TableCell>
+              <TableCell>Monthly Slots</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell align="right">Actions</TableCell>
+              <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {clients.map((client) => (
               <TableRow key={client._id}>
                 <TableCell>{`${client.firstName} ${client.lastName}`}</TableCell>
+                <TableCell>{client.email}</TableCell>
+                <TableCell>{client.phone}</TableCell>
                 <TableCell>
-                  <div>{client.email}</div>
-                  <div>{client.phone}</div>
+                  {client.preferredStaff?.map((staff) => (
+                    <Chip
+                      key={staff._id}
+                      label={`${staff.firstName} ${staff.lastName}`}
+                      size="small"
+                      sx={{ m: 0.5 }}
+                    />
+                  ))}
                 </TableCell>
                 <TableCell>
-                  <Chip 
+                  {client.preferredDaysServices?.length > 0 ? (
+                    <Box>
+                      {client.preferredDaysServices.map((pds, index) => (
+                        <Chip
+                          key={index}
+                          label={`${pds.day.charAt(0).toUpperCase() + pds.day.slice(1)}: ${pds.services.length} services`}
+                          size="small"
+                          sx={{ m: 0.5 }}
+                        />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      None
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {client.monthlySlotAllocation?.length > 0 ? (
+                    <Box>
+                      {client.monthlySlotAllocation.map((msa, index) => (
+                        <Chip
+                          key={index}
+                          label={`${msa.service.name}: ${msa.slots} slots`}
+                          size="small"
+                          sx={{ m: 0.5 }}
+                        />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      None
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  <Chip
                     label={client.status}
                     color={client.status === 'active' ? 'success' : 'error'}
                     size="small"
                   />
                 </TableCell>
-                <TableCell align="right">
-                  <IconButton onClick={(e) => handleOpenMenu(e, client)}>
+                <TableCell>
+                  <IconButton
+                    aria-label="more"
+                    onClick={(event) => {
+                      setAnchorEl(event.currentTarget);
+                      setSelectedClient(client);
+                    }}
+                  >
                     <MoreVertIcon />
                   </IconButton>
                 </TableCell>
@@ -336,27 +496,14 @@ export default function Clients() {
         open={Boolean(anchorEl)}
         onClose={handleCloseMenu}
       >
+        <MenuItem onClick={handleEditClick}>
+          <EditIcon fontSize="small" sx={{ mr: 1 }} />
+          Edit
+        </MenuItem>
         {isAdmin && (
-          <MenuItem onClick={() => {
-            handleOpenDialog(selectedClient!);
-            handleCloseMenu();
-          }}>
-            <EditIcon sx={{ mr: 1 }} /> Edit
-          </MenuItem>
-        )}
-        {isAdmin && selectedClient?.status === 'active' && (
-          <MenuItem onClick={() => handleStatusChange(selectedClient!._id, 'inactive')}>
-            Deactivate
-          </MenuItem>
-        )}
-        {isAdmin && selectedClient?.status === 'inactive' && (
-          <MenuItem onClick={() => handleStatusChange(selectedClient!._id, 'active')}>
-            Activate
-          </MenuItem>
-        )}
-        {isAdmin && (
-          <MenuItem onClick={() => handleDelete(selectedClient!._id)}>
-            <DeleteIcon sx={{ mr: 1 }} /> Delete
+          <MenuItem onClick={handleDeleteClick}>
+            <DeleteIcon fontSize="small" sx={{ mr: 1 }} />
+            Delete
           </MenuItem>
         )}
       </Menu>
@@ -403,7 +550,6 @@ export default function Clients() {
               <Grid item xs={12}>
                 <Autocomplete
                   multiple
-                  required
                   options={staffList}
                   value={selectedStaff}
                   onChange={(event, newValue) => {
@@ -436,76 +582,117 @@ export default function Clients() {
               </Grid>
               <Grid item xs={12}>
                 <Typography variant="subtitle1" gutterBottom>
-                  Preferred Days
+                  Preferred Days Mapped to Services
                 </Typography>
-                <Select
-                  multiple
-                  required
-                  fullWidth
-                  value={formik.values.preferredDays || []}
-                  onChange={(e) => {
-                    const value = e.target.value as string[];
-                    formik.setFieldValue('preferredDays', value);
-                  }}
-                  input={<OutlinedInput />}
-                  error={formik.touched.preferredDays && Boolean(formik.errors.preferredDays)}
-                  renderValue={(selected) => (
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                      {(selected as string[]).map((day) => (
-                        <Chip
-                          key={day}
-                          label={day.charAt(0).toUpperCase() + day.slice(1)}
-                          size="small"
+                {preferredDaysServices.map((mapping, index) => (
+                  <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={4}>
+                        <Select
+                          fullWidth
+                          value={mapping.day}
+                          onChange={(e) => handleDayChange(index, e.target.value)}
+                          displayEmpty
+                        >
+                          <MenuItem value="" disabled>Select Day</MenuItem>
+                          {DAYS_OF_WEEK.map((day) => (
+                            <MenuItem key={day} value={day}>
+                              {day.charAt(0).toUpperCase() + day.slice(1)}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </Grid>
+                      <Grid item xs={12} sm={7}>
+                        <Autocomplete
+                          multiple
+                          options={services}
+                          value={mapping.services}
+                          onChange={(event, newValue) => handleServicesChange(index, newValue)}
+                          getOptionLabel={(option) => option.name}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Services"
+                              variant="outlined"
+                              fullWidth
+                            />
+                          )}
+                          renderTags={(value, getTagProps) =>
+                            value.map((option, idx) => (
+                              <Chip
+                                label={option.name}
+                                {...getTagProps({ index: idx })}
+                              />
+                            ))
+                          }
                         />
-                      ))}
-                    </Box>
-                  )}
+                      </Grid>
+                      <Grid item xs={12} sm={1}>
+                        <IconButton onClick={() => handleRemoveDayServiceMapping(index)} color="error">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                ))}
+                <Button 
+                  variant="outlined" 
+                  startIcon={<AddIcon />} 
+                  onClick={handleAddDayServiceMapping}
+                  sx={{ mt: 1 }}
                 >
-                  {DAYS_OF_WEEK.map((day) => (
-                    <MenuItem key={day} value={day}>
-                      {day.charAt(0).toUpperCase() + day.slice(1)}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {formik.touched.preferredDays && formik.errors.preferredDays && (
-                  <Typography color="error" variant="caption">
-                    {formik.errors.preferredDays as string}
-                  </Typography>
-                )}
+                  Add Day-Service Mapping
+                </Button>
               </Grid>
               <Grid item xs={12}>
-                <Autocomplete
-                  multiple
-                  required
-                  options={services}
-                  value={selectedServices}
-                  onChange={(event, newValue) => {
-                    setSelectedServices(newValue);
-                    formik.setFieldValue(
-                      'preferredServices', 
-                      newValue.map(service => service._id)
-                    );
-                  }}
-                  getOptionLabel={(option) => `${option.name} (${option.duration}min - $${option.price})`}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      label="Preferred Services"
-                      variant="outlined"
-                      fullWidth
-                      error={formik.touched.preferredServices && Boolean(formik.errors.preferredServices)}
-                      helperText={formik.touched.preferredServices && formik.errors.preferredServices}
-                    />
-                  )}
-                  renderTags={(value, getTagProps) =>
-                    value.map((option, index) => (
-                      <Chip
-                        label={option.name}
-                        {...getTagProps({ index })}
-                      />
-                    ))
-                  }
-                />
+                <Typography variant="subtitle1" gutterBottom>
+                  Monthly Appointment Slot Allocation
+                </Typography>
+                {monthlySlotAllocation.map((allocation, index) => (
+                  <Box key={index} sx={{ mb: 2, p: 2, border: '1px solid #e0e0e0', borderRadius: 1 }}>
+                    <Grid container spacing={2} alignItems="center">
+                      <Grid item xs={12} sm={6}>
+                        <Autocomplete
+                          options={services}
+                          value={allocation.service}
+                          onChange={(event, newValue) => handleServiceChange(index, newValue as Service)}
+                          getOptionLabel={(option) => option.name || ''}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Service"
+                              variant="outlined"
+                              fullWidth
+                            />
+                          )}
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={5}>
+                        <TextField
+                          type="number"
+                          label="Slots"
+                          value={allocation.slots}
+                          onChange={(e) => handleSlotsChange(index, parseInt(e.target.value))}
+                          InputProps={{ inputProps: { min: 1 } }}
+                          fullWidth
+                        />
+                      </Grid>
+                      <Grid item xs={12} sm={1}>
+                        <IconButton onClick={() => handleRemoveSlotAllocation(index)} color="error">
+                          <DeleteIcon />
+                        </IconButton>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                ))}
+                <Button 
+                  variant="outlined" 
+                  startIcon={<AddIcon />} 
+                  onClick={handleAddSlotAllocation}
+                  sx={{ mt: 1 }}
+                >
+                  Add Slot Allocation
+                </Button>
               </Grid>
               <Grid item xs={12}>
                 <FormTextField

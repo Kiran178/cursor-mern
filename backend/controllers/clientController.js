@@ -8,7 +8,18 @@ const hasRequiredRole = (role) => {
 
 export const createClient = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, preferredStaff } = req.body;
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      phone, 
+      preferredStaff, 
+      preferredDaysServices, 
+      monthlySlotAllocation,
+      notes,
+      status
+    } = req.body;
+    
     const user = await User.findById(req.user.userId);
 
     const client = new Client({
@@ -17,6 +28,11 @@ export const createClient = async (req, res) => {
       email,
       phone,
       preferredStaff,
+      preferredDaysServices,
+      monthlySlotAllocation,
+      priorityScore: 10,
+      notes,
+      status: status || 'active',
       organization: user.organization
     });
 
@@ -36,6 +52,8 @@ export const getClients = async (req, res) => {
     const user = await User.findById(req.user.userId);
     const clients = await Client.find({ organization: user.organization })
       .populate('preferredStaff', 'firstName lastName email status')
+      .populate('preferredDaysServices.services', 'name price duration')
+      .populate('monthlySlotAllocation.service', 'name price duration')
       .sort({ createdAt: -1 });
 
     res.json(clients);
@@ -46,14 +64,39 @@ export const getClients = async (req, res) => {
 
 export const updateClient = async (req, res) => {
   try {
-    const { firstName, lastName, email, phone, preferredStaff } = req.body;
+    const { 
+      firstName, 
+      lastName, 
+      email, 
+      phone, 
+      preferredStaff, 
+      preferredDaysServices, 
+      monthlySlotAllocation,
+      notes,
+      status
+    } = req.body;
+    
     const user = await User.findById(req.user.userId);
 
     const client = await Client.findOneAndUpdate(
       { _id: req.params.id, organization: user.organization },
-      { firstName, lastName, email, phone, preferredStaff },
+      { 
+        firstName, 
+        lastName, 
+        email, 
+        phone, 
+        preferredStaff, 
+        preferredDaysServices, 
+        monthlySlotAllocation,
+        priorityScore: 10,
+        notes,
+        status
+      },
       { new: true }
-    ).populate('preferredStaff', 'firstName lastName');
+    )
+    .populate('preferredStaff', 'firstName lastName')
+    .populate('preferredDaysServices.services', 'name price duration')
+    .populate('monthlySlotAllocation.service', 'name price duration');
 
     if (!client) {
       return res.status(404).json({ message: 'Client not found' });

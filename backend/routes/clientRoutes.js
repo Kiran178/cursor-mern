@@ -58,6 +58,40 @@ const router = express.Router();
  *           items:
  *             type: string
  *           description: Array of Staff IDs
+ *         priorityScore:
+ *           type: number
+ *           minimum: 1
+ *           maximum: 10
+ *           default: 10
+ *           description: Priority score for appointment scheduling (1-10)
+ *         preferredDaysServices:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               day:
+ *                 type: string
+ *                 enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *               services:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: Array of Service IDs
+ *           description: Mapping of preferred days to preferred services
+ *         monthlySlotAllocation:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               service:
+ *                 type: string
+ *                 description: Service ID
+ *               slots:
+ *                 type: number
+ *                 minimum: 1
+ *                 default: 10
+ *                 description: Number of monthly slots allocated for this service
+ *           description: Monthly appointment slot allocation per service
  */
 
 /**
