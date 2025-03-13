@@ -12,8 +12,7 @@ const clientSchema = new mongoose.Schema({
   },
   email: {
     type: String,
-    required: true,
-    unique: true,
+    required: false,
     trim: true,
     lowercase: true
   },
@@ -83,9 +82,59 @@ const clientSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Ensure email is unique within an organization
-clientSchema.index({ email: 1, organization: 1 }, { unique: true });
+// Remove the problematic index on email and organization
+// clientSchema.index({ email: 1, organization: 1 }, { unique: true, sparse: true });
+
 // Ensure phone is unique within an organization
 clientSchema.index({ phone: 1, organization: 1 }, { unique: true });
+
+// Add a pre-save hook to validate email uniqueness only if email is provided
+clientSchema.pre('save', async function(next) {
+  // Skip validation if email is not provided
+  if (!this.email) {
+    return next();
+  }
+  
+  const Client = this.constructor;
+  
+  // Check if there's another client with the same email in the same organization
+  const existingClient = await Client.findOne({
+    email: this.email,
+    organization: this.organization,
+    _id: { $ne: this._id } // Exclude current client when updating
+  });
+  
+  if (existingClient) {
+    return next(new Error('Email already exists for another client in this organization'));
+  }
+  
+  next();
+});
+
+// Add a pre-update hook to validate email uniqueness
+clientSchema.pre('findOneAndUpdate', async function(next) {
+  const update = this.getUpdate();
+  
+  // Skip validation if email is not being updated or is being unset
+  if (!update.email || update.$unset?.email) {
+    return next();
+  }
+  
+  const Client = mongoose.model('Client');
+  const filter = this.getFilter();
+  
+  // Check if there's another client with the same email in the same organization
+  const existingClient = await Client.findOne({
+    email: update.email,
+    organization: filter.organization,
+    _id: { $ne: filter._id } // Exclude current client
+  });
+  
+  if (existingClient) {
+    return next(new Error('Email already exists for another client in this organization'));
+  }
+  
+  next();
+});
 
 export const Client = mongoose.model('Client', clientSchema); 

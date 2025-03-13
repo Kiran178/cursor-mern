@@ -22,10 +22,10 @@ export const createClient = async (req, res) => {
     
     const user = await User.findById(req.user.userId);
 
-    const client = new Client({
+    // Create client object with required fields
+    const clientData = {
       firstName,
       lastName,
-      email,
       phone,
       preferredStaff,
       preferredDaysServices,
@@ -34,7 +34,14 @@ export const createClient = async (req, res) => {
       notes,
       status: status || 'active',
       organization: user.organization
-    });
+    };
+
+    // Add email only if it's provided and not empty
+    if (email && email.trim() !== '') {
+      clientData.email = email;
+    }
+
+    const client = new Client(clientData);
 
     await client.save();
 
@@ -78,20 +85,31 @@ export const updateClient = async (req, res) => {
     
     const user = await User.findById(req.user.userId);
 
+    // Create update object with required fields
+    const updateData = {
+      firstName,
+      lastName,
+      phone,
+      preferredStaff,
+      preferredDaysServices,
+      monthlySlotAllocation,
+      priorityScore: 10,
+      notes,
+      status
+    };
+
+    // Handle email field
+    if (email && email.trim() !== '') {
+      // Add email if it's provided and not empty
+      updateData.email = email;
+    } else {
+      // If email is not provided or empty, unset it
+      updateData.$unset = { email: 1 };
+    }
+
     const client = await Client.findOneAndUpdate(
       { _id: req.params.id, organization: user.organization },
-      { 
-        firstName, 
-        lastName, 
-        email, 
-        phone, 
-        preferredStaff, 
-        preferredDaysServices, 
-        monthlySlotAllocation,
-        priorityScore: 10,
-        notes,
-        status
-      },
+      updateData,
       { new: true }
     )
     .populate('preferredStaff', 'firstName lastName')

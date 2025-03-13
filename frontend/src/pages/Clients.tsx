@@ -69,7 +69,7 @@ interface Client {
   _id: string;
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   phone: string;
   status: 'active' | 'inactive';
   notes: string;
@@ -94,7 +94,7 @@ const DAYS_OF_WEEK = [
 const validationSchema = Yup.object({
   firstName: Yup.string().required('Required'),
   lastName: Yup.string(),
-  email: Yup.string().email('Invalid email').required('Required'),
+  email: Yup.string().email('Invalid email format if provided'),
   phone: Yup.string().required('Required'),
   notes: Yup.string(),
   preferredStaff: Yup.array().of(Yup.string()).min(1, 'At least one staff member is required').required('Required'),
@@ -146,7 +146,8 @@ export default function Clients() {
     onSubmit: async (values, { resetForm, setSubmitting }) => {
       try {
         const token = localStorage.getItem('accessToken');
-        const clientData = {
+        
+        const clientData: any = {
           ...values,
           preferredStaff: selectedStaff.map(staff => staff._id),
           preferredDays: values.preferredDays || [],
@@ -161,6 +162,10 @@ export default function Clients() {
           })),
           priorityScore: 10
         };
+        
+        if (!clientData.email || clientData.email.trim() === '') {
+          delete clientData.email;
+        }
 
         if (editingClient) {
           await axios.put(
@@ -268,7 +273,7 @@ export default function Clients() {
       formik.setValues({
         firstName: client.firstName,
         lastName: client.lastName,
-        email: client.email,
+        email: client.email || '',
         phone: client.phone,
         notes: client.notes || '',
         preferredStaff: client.preferredStaff.map(staff => staff._id),
@@ -535,7 +540,7 @@ export default function Clients() {
                 <FormTextField
                   formik={formik}
                   name="email"
-                  label="Email"
+                  label="Email (Optional)"
                   fullWidth
                 />
               </Grid>

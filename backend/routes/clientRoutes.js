@@ -17,8 +17,6 @@ const router = express.Router();
  *       type: object
  *       required:
  *         - firstName
- *         - lastName
- *         - email
  *         - phone
  *         - organization
  *       properties:
@@ -31,6 +29,7 @@ const router = express.Router();
  *           type: string
  *         email:
  *           type: string
+ *           description: Optional email address
  *         phone:
  *           type: string
  *         address:
